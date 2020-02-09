@@ -51,11 +51,24 @@ def convert(network_pkl, save_dir):
         images = tf.transpose(outputs[0], [0, 2, 3, 1])
         images = tf.saturate_cast((images + 1.0) * 127.5, tf.uint8)
         # save as SavedModel
-        tf.compat.v1.saved_model.simple_save(
+        builder = tf.compat.v1.saved_model.Builder(save_dir)
+        default = tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY
+        signature_def_map = {
+            default: tf.compat.v1.saved_model.build_signature_def(
+                {'latents': tf.saved_model.utils.build_tensor_info(inputs[0])},
+                {'images': tf.saved_model.utils.build_tensor_info(images)}),
+            'mapping': tf.compat.v1.saved_model.build_signature_def(
+                {'latents': tf.saved_model.utils.build_tensor_info(inputs[0])},
+                {'dlatents': tf.saved_model.utils.build_tensor_info(outputs[1])}),
+            'synthesis': tf.compat.v1.saved_model.build_signature_def(
+                {'dlatents': tf.saved_model.utils.build_tensor_info(outputs[1])},
+                {'images': tf.saved_model.utils.build_tensor_info(images)})
+        }
+        builder.add_meta_graph_and_variables(
             sess,
-            save_dir,
-            {'latents': inputs[0]},
-            {'images': images, 'dlatents': outputs[1]})
+            [tf.saved_model.tag_constants.SERVING],
+            signature_def_map)
+        builder.save()
 
 
 if __name__ == "__main__":
