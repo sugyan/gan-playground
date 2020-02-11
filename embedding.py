@@ -25,11 +25,12 @@ class GenerateLoss(tf.keras.losses.Loss):
     def __init__(self, image):
         super().__init__()
         self.vgg16 = tf.keras.applications.VGG16(include_top=False)
+        self.target_layers = {'block1_conv1', 'block1_conv2', 'block3_conv2', 'block4_conv2'}
         self.outputs = []
         out = image
         for layer in self.vgg16.layers:
             out = layer(out)
-            if layer.name in {'block1_conv1', 'block1_conv2', 'block3_conv2', 'block4_conv2'}:
+            if layer.name in self.target_layers:
                 self.outputs.append(out)
 
     def call(self, y_true, y_pred):
@@ -37,13 +38,11 @@ class GenerateLoss(tf.keras.losses.Loss):
         out = y_pred
         for layer in self.vgg16.layers:
             out = layer(out)
-            if layer.name in {'block1_conv1', 'block1_conv2', 'block3_conv2', 'block4_conv2'}:
+            if layer.name in self.target_layers:
                 outputs.append(out)
-        n = tf.cast(tf.reduce_prod(y_pred.shape), tf.float32)
-        losses = tf.math.reduce_sum(tf.keras.losses.MSE(y_true, y_pred)) / n
+        losses = tf.math.reduce_mean(tf.math.squared_difference(y_true, y_pred))
         for i, out in enumerate(outputs):
-            n = tf.cast(tf.math.reduce_prod(out.shape), tf.float32)
-            losses += tf.math.reduce_sum(tf.keras.losses.MSE(self.outputs[i], out)) / n
+            losses += tf.math.reduce_mean(tf.math.squared_difference(self.outputs[i], out))
         return losses
 
 
@@ -68,12 +67,16 @@ def run(model_path, target_image):
     ])
     model(tf.zeros([]))
     model.summary()
-    model.compile(loss=GenerateLoss(y))
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=0.01,
+            epsilon=1e-08),
+        loss=GenerateLoss(y))
     dataset = tf.data.Dataset.from_tensors(([], y))
     model.fit(
         dataset.repeat().batch(1),
-        steps_per_epoch=10,
-        epochs=20,
+        steps_per_epoch=100,
+        epochs=50,
         callbacks=[GenerateCallback()])
 
 
