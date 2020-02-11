@@ -62,7 +62,8 @@ def convert(network_pkl, save_dir):
                 {'dlatents': tf.saved_model.utils.build_tensor_info(outputs[1])}),
             'synthesis': tf.compat.v1.saved_model.build_signature_def(
                 {'dlatents': tf.saved_model.utils.build_tensor_info(outputs[1])},
-                {'images': tf.saved_model.utils.build_tensor_info(images)})
+                {'images': tf.saved_model.utils.build_tensor_info(images),
+                 'outputs': tf.saved_model.utils.build_tensor_info(tf.transpose(outputs[0], [0, 2, 3, 1]))})
         }
         builder.add_meta_graph_and_variables(
             sess,
