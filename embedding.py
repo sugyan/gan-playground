@@ -1,14 +1,18 @@
 import argparse
+import numpy as np
 import tensorflow as tf
 
 
 class LatentSpace(tf.keras.layers.Layer):
     def __init__(self):
         super().__init__()
-        self._variables = self.add_weight(shape=(1, 14, 512), dtype=tf.float32)
+        self._variables = self.add_weight(
+            shape=(1, 14, 512),
+            dtype=tf.float32,
+            initializer=tf.random_normal_initializer)
 
     def call(self, inputs):
-        return 1.0 * self._variables
+        return tf.identity(self._variables)
 
 
 class Synthesis(tf.keras.layers.Layer):
@@ -40,9 +44,11 @@ class GenerateLoss(tf.keras.losses.Loss):
             out = layer(out)
             if layer.name in self.target_layers:
                 outputs.append(out)
-        losses = tf.math.reduce_mean(tf.math.squared_difference(y_true, y_pred))
+        n = tf.cast(tf.math.reduce_prod(y_pred.shape), tf.float32)
+        losses = tf.math.reduce_sum(tf.math.squared_difference(y_true, y_pred)) / n
         for i, out in enumerate(outputs):
-            losses += tf.math.reduce_mean(tf.math.squared_difference(self.outputs[i], out))
+            n = tf.cast(tf.math.reduce_prod(out.shape), tf.float32)
+            losses += tf.math.reduce_sum(tf.math.squared_difference(self.outputs[i], out)) / n
         return losses
 
 
@@ -78,6 +84,7 @@ def run(model_path, target_image):
         steps_per_epoch=100,
         epochs=50,
         callbacks=[GenerateCallback()])
+    np.save('latents_in.npy', model.layers[0].variables[0].numpy())
 
 
 if __name__ == "__main__":
