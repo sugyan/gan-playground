@@ -6,13 +6,12 @@ import tensorflow as tf
 class LatentSpace(tf.keras.layers.Layer):
     def __init__(self):
         super().__init__()
-        self._variables = self.add_weight(
+        self.v = self.add_weight(
             shape=(1, 14, 512),
-            dtype=tf.float32,
-            initializer=tf.random_normal_initializer)
+            dtype=tf.float32)
 
     def call(self, inputs):
-        return tf.identity(self._variables)
+        return tf.identity(self.v)
 
 
 class Synthesis(tf.keras.layers.Layer):
@@ -25,7 +24,7 @@ class Synthesis(tf.keras.layers.Layer):
         return self.synthesis(dlatents=inputs)['outputs']
 
 
-class GenerateLoss(tf.keras.losses.Loss):
+class EmbeddingLoss(tf.keras.losses.Loss):
     def __init__(self, image):
         super().__init__()
         self.vgg16 = tf.keras.applications.VGG16(include_top=False)
@@ -63,6 +62,8 @@ class GenerateCallback(tf.keras.callbacks.Callback):
 
 
 def run(model_path, target_image):
+    tf.keras.backend.clear_session()
+
     with open(target_image, 'rb') as fp:
         y = tf.image.decode_jpeg(fp.read())
     y = tf.expand_dims(tf.cast(y, tf.float32) / 127.5 - 1.0, axis=0)
@@ -77,12 +78,12 @@ def run(model_path, target_image):
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=0.01,
             epsilon=1e-08),
-        loss=GenerateLoss(y))
+        loss=EmbeddingLoss(y))
     dataset = tf.data.Dataset.from_tensors(([], y))
     model.fit(
         dataset.repeat().batch(1),
-        steps_per_epoch=100,
-        epochs=50,
+        steps_per_epoch=50,
+        epochs=100,
         callbacks=[GenerateCallback()])
     np.save('latents_in.npy', model.layers[0].variables[0].numpy())
 
