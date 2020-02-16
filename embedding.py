@@ -5,7 +5,7 @@ import tensorflow as tf
 
 class LatentSpace(tf.keras.layers.Layer):
     def __init__(self):
-        super().__init__()
+        super().__init__(input_shape=())
         self.v = self.add_weight(
             shape=(1, 14, 512),
             dtype=tf.float32)
@@ -64,22 +64,22 @@ class GenerateCallback(tf.keras.callbacks.Callback):
 def run(model_path, target_image):
     tf.keras.backend.clear_session()
 
-    with open(target_image, 'rb') as fp:
-        y = tf.image.decode_jpeg(fp.read())
-    y = tf.expand_dims(tf.cast(y, tf.float32) / 127.5 - 1.0, axis=0)
-
     model = tf.keras.Sequential([
         LatentSpace(),
         Synthesis(model_path),
     ])
-    model(tf.zeros([]))
     model.summary()
+
+    with open(target_image, 'rb') as fp:
+        y = tf.image.decode_jpeg(fp.read())
+    y = tf.expand_dims(tf.cast(y, tf.float32) / 127.5 - 1.0, axis=0)
+
+    dataset = tf.data.Dataset.from_tensors((0, y))
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=0.01,
             epsilon=1e-08),
         loss=EmbeddingLoss(y))
-    dataset = tf.data.Dataset.from_tensors(([], y))
     model.fit(
         dataset.repeat().batch(1),
         steps_per_epoch=50,
