@@ -29,7 +29,7 @@ def convert(network_pkl, save_dir):
                     'G',
                     num_channels=3,
                     resolution=256,
-                    label_size=0,
+                    truncation_psi=0.5,
                     **G_args)
                 Gs = G.clone('Gs')
                 # load weights
