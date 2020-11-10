@@ -8,16 +8,17 @@ from PIL import Image
 
 def run(model_path, num_images, outdir, seed, steps):
     model = tf.saved_model.load(model_path)
-    mapping = model.signatures['mapping']
+    mapping = model.signatures["mapping"]
     rnd = np.random.RandomState(seed)
     z = rnd.randn(num_images, 512)
-    z = mapping(latents=tf.constant(z, tf.float32))['dlatents'].numpy()
+    z = mapping(latents=tf.constant(z, tf.float32))["dlatents"].numpy()
 
     inputs = []
     for i in range(num_images):
-        for j in range(steps):
-            rate = j / steps
-            inputs.append(z[i] + (z[(i + 1) % num_images] - z[i]) * rate)
+        j = (i + 1) % num_images
+        for s in range(steps):
+            t = s / steps
+            inputs.append((1 - t) * z[i] + t * z[j])
 
     synthesis = model.signatures['synthesis']
     for i, latents_in in enumerate(inputs):
@@ -32,11 +33,11 @@ def run(model_path, num_images, outdir, seed, steps):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('model_path', type=str)
-    parser.add_argument('--num', type=int, default=3)
-    parser.add_argument('--steps', type=int, default=10)
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--outdir', type=str, default='out')
+    parser.add_argument("model_path", type=str)
+    parser.add_argument("--num", type=int, default=3)
+    parser.add_argument("--steps", type=int, default=10)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--outdir", type=str, default="out")
     args = parser.parse_args()
 
     run(args.model_path, args.num, args.outdir, args.seed, args.steps)
