@@ -8,11 +8,12 @@ from PIL import Image
 
 def run(model_path, num_images, outdir, seed, steps):
     model = tf.saved_model.load(model_path)
-    mapping = model.signatures["mapping"]
     rnd = np.random.RandomState(seed)
+
+    # generate dlatents from mapping outputs
+    mapping = model.signatures["mapping"]
     z = rnd.randn(num_images, 512)
     z = mapping(latents=tf.constant(z, tf.float32))["dlatents"].numpy()
-
     inputs = []
     for i in range(num_images):
         j = (i + 1) % num_images
@@ -20,6 +21,7 @@ def run(model_path, num_images, outdir, seed, steps):
             t = s / steps
             inputs.append((1 - t) * z[i] + t * z[j])
 
+    # generate images
     synthesis = model.signatures['synthesis']
     for i, latents_in in enumerate(inputs):
         now = datetime.now()
