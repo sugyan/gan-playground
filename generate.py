@@ -6,19 +6,28 @@ from datetime import datetime
 from PIL import Image
 
 
-def run(model_path, num_images, outdir, seed):
+def run(model_path, num_images, outdir, seed, save_dlatents):
     model = tf.saved_model.load(model_path)
-    generate = model.signatures[tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY]
     rnd = np.random.RandomState(seed)
-    zs = rnd.randn(num_images, 1, 512)
+    z = rnd.randn(num_images, 512)
 
-    for i, z in enumerate(zs):
+    # calculate dlatents with mapping network
+    mapping = model.signatures["mapping"]
+    dlatents = mapping(latents=tf.convert_to_tensor(z, tf.float32))
+    dlatents = dlatents["dlatents"].numpy()
+
+    # generate images
+    synthesis = model.signatures["synthesis"]
+    for i, dlatents_in in enumerate(dlatents):
         out_path = os.path.join(outdir, f"generate_{i:05d}.png")
         now = datetime.now()
-        images = generate(latents=tf.constant(z, tf.float32))["images"]
-        Image.fromarray(images.numpy()[0]).save(out_path)
+        images = synthesis(dlatents=tf.convert_to_tensor([dlatents_in], tf.float32))
+        images = images["images"].numpy()
+        Image.fromarray(images[0]).save(out_path)
         elapsed = datetime.now() - now
         print(f"{out_path} ({elapsed})")
+        if save_dlatents:
+            np.save(f"{out_path}.npy", dlatents_in)
 
 
 if __name__ == "__main__":
@@ -27,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--num", type=int, default=1)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--outdir", type=str, default="out")
+    parser.add_argument("--save_dlatents", action="store_true")
     args = parser.parse_args()
 
-    run(args.model_path, args.num, args.outdir, args.seed)
+    run(args.model_path, args.num, args.outdir, args.seed, args.save_dlatents)
