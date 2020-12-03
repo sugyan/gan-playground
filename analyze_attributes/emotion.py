@@ -23,7 +23,7 @@ class EmotionDetector(pr.Processor):
         return results
 
 
-def run(target_dir):
+def predict(target_dir, data_file):
     detect = EmotionDetector()
     indexes = []
     columns = []
@@ -43,12 +43,14 @@ def run(target_dir):
         columns=["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"],
     )
     print(df)
-    df.to_hdf("emotion.h5", key="df")
+    df.to_hdf(data_file, key="df")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("target_dir", type=str)
+    parser.add_argument("--data_file", type=str, default="emotion.h5")
     args = parser.parse_args()
 
-    run(args.target_dir)
+    if not os.path.exists(args.data_file):
+        predict(args.target_dir, args.data_file)
