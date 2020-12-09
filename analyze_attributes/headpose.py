@@ -1,6 +1,7 @@
 import argparse
 import glob
 import os
+import math
 import cv2
 import dlib
 import numpy as np
@@ -25,7 +26,8 @@ class HeadposeDetector:
         self.predictor = dlib.shape_predictor(predictor_path)
 
     # https://www.learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
-    def __call__(self, image):
+    def __call__(self, img_file):
+        image = cv2.imread(img_file)
         size = image.shape
 
         # 2D image points
@@ -65,26 +67,10 @@ class HeadposeDetector:
             cv2.hconcat([rotation_mat, translation_vector])
         )
 
-        (nose_end_point2D, jacobian) = cv2.projectPoints(
-            np.array([(0.0, 0.0, 1000.0)]),
-            rotation_vector,
-            translation_vector,
-            camera_matrix,
-            dist_coeffs,
-        )
-        for p in image_points:
-            cv2.circle(image, (int(p[0]), int(p[1])), 3, (0, 0, 255), -1)
-
-        p1 = (int(image_points[0][0]), int(image_points[0][1]))
-        p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
-
-        cv2.line(image, p1, p2, (255, 0, 0), 2)
-
-        # Display image
-        cv2.imshow("Output", image)
-        cv2.waitKey(0)
-
-        return euler_angles.flatten()
+        return [
+            math.degrees(math.asin(math.sin(math.radians(a))))
+            for a in euler_angles.flatten()
+        ]
 
 
 def predict(target_dir, data_file):
@@ -92,12 +78,7 @@ def predict(target_dir, data_file):
     indexes = []
     columns = []
     for i, img_file in enumerate(glob.glob(os.path.join(target_dir, "*.png"))):
-        # if not (img_file.endswith("04338.png") or img_file.endswith("00727.png")):
-        # if not (img_file.endswith("04737.png") or img_file.endswith("02743.png")):
-        #     continue
-        # Read Image
-        im = cv2.imread(img_file)
-        yaw, pitch, roll = detect(im)
+        yaw, pitch, roll = detect(img_file)
         print(f"{i:05d} {img_file}", yaw, pitch, roll)
         indexes.append(os.path.abspath(img_file))
         columns.append([yaw, pitch, roll])
@@ -122,7 +103,7 @@ def calc_vectors(df, out_file):
         for index, row in df.sort_values(e, ascending=False)[:k].iterrows():
             print(index, row[e])
             maxs.append(np.load(f"{index}.npy"))
-        outputs[e] = np.mean(maxs, axis=0) - np.mean(mins, axis=0)
+        outputs[e] = (np.mean(maxs, axis=0) - np.mean(mins, axis=0)) / 2.0
     np.savez(out_file, **outputs)
 
 
