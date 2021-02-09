@@ -3,6 +3,7 @@ astunparse==1.6.3
 cachetools==4.1.1
 certifi==2020.11.8
 chardet==3.0.4
+dlib==19.21.0
 gast==0.3.3
 google-auth==1.23.0
 google-auth-oauthlib==0.4.2
@@ -15,9 +16,10 @@ Markdown==3.3.3
 numexpr==2.7.1
 numpy==1.18.5
 oauthlib==3.1.0
-opencv-python==4.4.0.46
+opencv-python-headless==4.5.1.48
 opt-einsum==3.3.0
-pandas==1.1.4
+pandas==1.2.2
+Pillow==8.1.0
 protobuf==3.14.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
