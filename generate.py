@@ -25,7 +25,7 @@ def run(
     # generate images
     synthesis = model.signatures["synthesis"]
     for i, dlatents_in in enumerate(dlatents):
-        out_path = outdir.joinpath(f"generate_{i:05d}.png")
+        out_path = outdir / f"generate_{i:05d}.png"
 
         now = datetime.now()
         images = synthesis(dlatents=tf.convert_to_tensor([dlatents_in], tf.float32))

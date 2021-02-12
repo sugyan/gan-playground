@@ -1,15 +1,16 @@
 import argparse
 import glob
-import os
 import math
+import pathlib
 import cv2
 import dlib
 import numpy as np
 import pandas as pd
+from typing import List, Optional
 
 
 class HeadposeDetector:
-    def __init__(self):
+    def __init__(self) -> None:
         predictor_path = "shape_predictor_68_face_landmarks.dat"
 
         self.model_points = np.array(
@@ -26,8 +27,8 @@ class HeadposeDetector:
         self.predictor = dlib.shape_predictor(predictor_path)
 
     # https://www.learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
-    def __call__(self, img_file):
-        image = cv2.imread(img_file)
+    def __call__(self, img_file: pathlib.Path) -> List[Optional[float]]:
+        image = cv2.imread(str(img_file))
         size = image.shape
 
         # 2D image points
@@ -35,7 +36,7 @@ class HeadposeDetector:
         rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         dets = self.detector(rgb, 1)
         if len(dets) != 1:
-            return None, None, None
+            return [None, None, None]
 
         d = dets[0]
         shape = self.predictor(rgb, d)
@@ -73,22 +74,22 @@ class HeadposeDetector:
         ]
 
 
-def predict(target_dir, data_file):
+def predict(target_dir: pathlib.Path) -> pd.DataFrame:
     detect = HeadposeDetector()
     indexes = []
     columns = []
-    for i, img_file in enumerate(glob.glob(os.path.join(target_dir, "*.png"))):
+    for i, img_file in enumerate(
+        map(pathlib.Path, glob.glob(str(target_dir / "*.png")))
+    ):
         yaw, pitch, roll = detect(img_file)
         print(f"{i:05d} {img_file}", yaw, pitch, roll)
-        indexes.append(os.path.abspath(img_file))
+        indexes.append(img_file.resolve())
         columns.append([yaw, pitch, roll])
 
-    df = pd.DataFrame(columns, index=indexes, columns=["pitch", "yaw", "roll"])
-    print(df)
-    df.to_hdf(data_file, key="df")
+    return pd.DataFrame(columns, index=indexes, columns=["pitch", "yaw", "roll"])
 
 
-def calc_vectors(df, out_file):
+def calc_vectors(df: pd.DataFrame, out_file: pathlib.Path) -> None:
     k = round(len(df) / 100.0)
     outputs = {}
     for e in ["pitch", "yaw", "roll"]:
@@ -109,12 +110,19 @@ def calc_vectors(df, out_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("target_dir", type=str)
-    parser.add_argument("--data_file", type=str, default="headposes.h5")
-    parser.add_argument("--out_file", type=str, default="headposes.npz")
+    parser.add_argument("target_dir", type=pathlib.Path)
+    parser.add_argument(
+        "--data_file", type=pathlib.Path, default=pathlib.Path("headposes.h5")
+    )
+    parser.add_argument(
+        "--out_file", type=pathlib.Path, default=pathlib.Path("headposes.npz")
+    )
     args = parser.parse_args()
 
-    if not os.path.exists(args.data_file):
-        predict(args.target_dir, args.data_file)
-    df = pd.read_hdf(args.data_file)
-    calc_vectors(df, args.out_file)
+    if args.data_file.exists():
+        df = pd.read_hdf(args.data_file.resolve(strict=True))
+    else:
+        df = predict(args.target_dir.resolve(strict=True))
+        print(df)
+        df.to_hdf(args.data_file.resolve(), key="df")
+    calc_vectors(df, args.out_file.resolve(strict=True))

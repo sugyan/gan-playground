@@ -1,13 +1,19 @@
 import argparse
-import os
+import pathlib
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
 from PIL import Image
 
 
-def run(model_path, num_images, outdir, seed, steps):
-    model = tf.saved_model.load(model_path)
+def run(
+    model_path: pathlib.Path,
+    outdir: pathlib.Path,
+    num_images: int,
+    seed: int,
+    steps: int,
+) -> None:
+    model = tf.saved_model.load(str(model_path))
     rnd = np.random.RandomState(seed)
 
     # generate dlatents from mapping outputs
@@ -22,24 +28,29 @@ def run(model_path, num_images, outdir, seed, steps):
             inputs.append((1 - t) * z[i] + t * z[j])
 
     # generate images
-    synthesis = model.signatures['synthesis']
+    synthesis = model.signatures["synthesis"]
     for i, latents_in in enumerate(inputs):
+        out_path = outdir / f"morphing_{i:03d}.png"
+
         now = datetime.now()
-        out_path = os.path.join(outdir, f'morphing_{i:03d}.png')
-        images = synthesis(dlatents=tf.constant([latents_in], tf.float32))['images']
-        img = Image.fromarray(images.numpy()[0])
-        img.save(out_path)
-        elapsed = datetime.now() - now
-        print(f'{out_path} ({elapsed})')
+        images = synthesis(dlatents=tf.constant([latents_in], tf.float32))["images"]
+        Image.fromarray(images.numpy()[0]).save(out_path)
+        print(f"{out_path} ({datetime.now() - now})")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("model_path", type=str)
+    parser.add_argument("--savedmodel", type=pathlib.Path, required=True)
+    parser.add_argument("--outdir", type=pathlib.Path, required=True)
     parser.add_argument("--num", type=int, default=3)
-    parser.add_argument("--steps", type=int, default=10)
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--outdir", type=str, default="out")
+    parser.add_argument("--steps", type=int, default=10)
     args = parser.parse_args()
 
-    run(args.model_path, args.num, args.outdir, args.seed, args.steps)
+    run(
+        args.savedmodel.resolve(strict=True),
+        args.outdir.resolve(strict=True),
+        args.num,
+        args.seed,
+        args.steps,
+    )
