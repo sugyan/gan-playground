@@ -5,8 +5,7 @@ import pathlib
 import cv2
 import dlib
 import numpy as np
-import pandas as pd
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 class HeadposeDetector:
@@ -74,55 +73,26 @@ class HeadposeDetector:
         ]
 
 
-def predict(target_dir: pathlib.Path) -> pd.DataFrame:
+def predict(target_dir: pathlib.Path) -> Dict[str, np.ndarray]:
+    results = {}
     detect = HeadposeDetector()
-    indexes = []
-    columns = []
     for i, img_file in enumerate(
         map(pathlib.Path, glob.glob(str(target_dir / "*.png")))
     ):
         yaw, pitch, roll = detect(img_file)
         print(f"{i:05d} {img_file}", yaw, pitch, roll)
-        indexes.append(img_file.resolve())
-        columns.append([yaw, pitch, roll])
+        results[str(img_file.resolve())] = [yaw, pitch, roll]
 
-    return pd.DataFrame(columns, index=indexes, columns=["pitch", "yaw", "roll"])
-
-
-def calc_vectors(df: pd.DataFrame, out_file: pathlib.Path) -> None:
-    k = round(len(df) / 100.0)
-    outputs = {}
-    for e in ["pitch", "yaw", "roll"]:
-        print(f"top {k} images of {e}")
-        print("min:")
-        mins = []
-        for index, row in df.sort_values(e, ascending=True)[:k].iterrows():
-            print(index, row[e])
-            mins.append(np.load(f"{index}.npy"))
-        print("max:")
-        maxs = []
-        for index, row in df.sort_values(e, ascending=False)[:k].iterrows():
-            print(index, row[e])
-            maxs.append(np.load(f"{index}.npy"))
-        outputs[e] = (np.mean(maxs, axis=0) - np.mean(mins, axis=0)) / 2.0
-    np.savez(out_file, **outputs)
+    return results
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("target_dir", type=pathlib.Path)
     parser.add_argument(
-        "--data_file", type=pathlib.Path, default=pathlib.Path("headposes.h5")
-    )
-    parser.add_argument(
         "--out_file", type=pathlib.Path, default=pathlib.Path("headposes.npz")
     )
     args = parser.parse_args()
 
-    if args.data_file.exists():
-        df = pd.read_hdf(args.data_file.resolve(strict=True))
-    else:
-        df = predict(args.target_dir.resolve(strict=True))
-        print(df)
-        df.to_hdf(args.data_file.resolve(), key="df")
-    calc_vectors(df, args.out_file.resolve(strict=True))
+    results = predict(args.target_dir.resolve(strict=True))
+    np.savez(args.out_file.resolve(), **results)
