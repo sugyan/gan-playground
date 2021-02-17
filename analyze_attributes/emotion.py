@@ -6,12 +6,8 @@ import numpy as np
 import paz.processors as pr
 from paz.abstract import Box2D
 from paz.backend.image import load_image
-from paz.datasets.utils import get_class_names
 from paz.applications import MiniXceptionFER
 from typing import Dict, List
-
-
-emotions = get_class_names("FER")
 
 
 class EmotionDetector(pr.Processor):  # type: ignore

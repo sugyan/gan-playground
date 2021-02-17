@@ -15,7 +15,7 @@ def predict(target_dir: pathlib.Path) -> Dict[str, np.ndarray]:
     # fp.set_detector(fd)
     results = {}
     for i, image_path in enumerate(glob.glob(str(target_dir / "*.png"))):
-        print(i, image_path)
+        print(f"{i:5} {image_path}")
         im = cv2.imread(image_path)[..., ::-1]
         results[image_path] = fp.parse_face(im)[0]
 
