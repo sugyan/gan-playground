@@ -49,7 +49,7 @@ def calculate_vectors(df: pd.DataFrame, rate: float, out: pathlib.Path) -> None:
             maxs.append(np.load(f"{index}.npy"))
         v = np.mean(maxs, axis=0) - np.mean(mins, axis=0)
         if not col.startswith("emotion"):
-            v / 2.0
+            v /= 2.0
         results[col] = v
 
     np.savez(args.out_file.resolve(), **results)
