@@ -21,24 +21,13 @@ if __name__ == "__main__":
     with np.load(args.npz.resolve(strict=True)) as data:
         for scale in [x / 10.0 for x in range(11)]:
             print(scale)
+            vectors = [
+                data["emotion_happy"],
+                data["headpose_pitch"] - data["headpose_yaw"],
+                data["hair_length"] + data["hair_brightness"],
+            ]
             tile = tf.concat(
-                [
-                    tf.concat(
-                        generator.generate(data["emotion_happy"] * scale), axis=1
-                    ),
-                    tf.concat(
-                        generator.generate(
-                            (data["headpose_pitch"] - data["headpose_yaw"]) * scale
-                        ),
-                        axis=1,
-                    ),
-                    tf.concat(
-                        generator.generate(
-                            (data["hair_length"] + data["hair_brightness"]) * scale
-                        ),
-                        axis=1,
-                    ),
-                ],
+                [tf.concat(generator.images(v * scale), axis=1) for v in vectors],
                 axis=0,
             )
             tf.io.write_file(
