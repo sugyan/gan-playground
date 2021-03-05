@@ -6,7 +6,8 @@ from typing import Generator, List, Optional, Tuple
 
 class ImagesGenerator:
     def __init__(self, model_path: pathlib.Path, seed: int, num_images: int) -> None:
-        model = tf.saved_model.load(str(model_path))
+        tf.compat.v1.enable_eager_execution()
+        model = tf.compat.v2.saved_model.load(str(model_path))
         rnd = np.random.RandomState(seed)
         z = rnd.randn(num_images, 512)
         self.dlatents = model.signatures["mapping"](

@@ -20,6 +20,6 @@ if __name__ == "__main__":
     for i, (image, dlatents) in enumerate(generator.generate()):
         out_path = str(args.outdir.resolve(strict=True) / f"generate_{i:05d}.png")
         print(out_path)
-        tf.io.write_file(out_path, tf.io.encode_png(image))
+        tf.io.write_file(out_path, tf.compat.v1.image.encode_png(image))
         if args.save_dlatents:
             np.save(f"{out_path}.npy", dlatents)
