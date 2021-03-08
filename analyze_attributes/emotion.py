@@ -1,13 +1,14 @@
 import argparse
 import glob
 import pathlib
+from typing import Dict, List
+
 import dlib
 import numpy as np
 import paz.processors as pr
 from paz.abstract import Box2D
-from paz.backend.image import load_image
 from paz.applications import MiniXceptionFER
-from typing import Dict, List
+from paz.backend.image import load_image
 
 
 class EmotionDetector(pr.Processor):  # type: ignore

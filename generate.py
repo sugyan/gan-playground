@@ -3,7 +3,6 @@ import pathlib
 from typing import Optional
 
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 
 from generator import ImagesGenerator

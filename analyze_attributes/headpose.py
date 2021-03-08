@@ -2,10 +2,11 @@ import argparse
 import glob
 import math
 import pathlib
+from typing import Dict, List, Optional
+
 import cv2
 import dlib
 import numpy as np
-from typing import Dict, List, Optional
 
 
 class HeadposeDetector:

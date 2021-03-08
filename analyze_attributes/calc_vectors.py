@@ -1,8 +1,9 @@
 import argparse
 import pathlib
+from typing import Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import List, Tuple
 
 
 def _load_npz(filepath: pathlib.Path) -> Tuple[List[str], List[np.ndarray]]:
@@ -32,7 +33,9 @@ def load_headpose(filepath: pathlib.Path) -> pd.DataFrame:
     return pd.DataFrame(data, index=index, columns=[f"headpose_{s}" for s in columns])
 
 
-def calculate_vectors(df: pd.DataFrame, rate: float, out: pathlib.Path) -> None:
+def calculate_vectors(
+    df: pd.DataFrame, rate: float, out: pathlib.Path
+) -> Dict[str, np.ndarray]:
     k = round(len(df) * rate)
     results = {}
     for col in df.columns:
@@ -52,7 +55,7 @@ def calculate_vectors(df: pd.DataFrame, rate: float, out: pathlib.Path) -> None:
             v /= 2.0
         results[col] = v
 
-    np.savez(args.out_file.resolve(), **results)
+    return results
 
 
 if __name__ == "__main__":
@@ -74,4 +77,5 @@ if __name__ == "__main__":
     if args.headpose:
         df = df.join(load_headpose(args.headpose.resolve(strict=True)), how="outer")
 
-    calculate_vectors(df, args.rate, args.out_file.resolve())
+    results = calculate_vectors(df, args.rate, args.out_file.resolve())
+    np.savez(args.out_file.resolve(), **results)
