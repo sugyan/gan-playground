@@ -33,9 +33,7 @@ def load_headpose(filepath: pathlib.Path) -> pd.DataFrame:
     return pd.DataFrame(data, index=index, columns=[f"headpose_{s}" for s in columns])
 
 
-def calculate_vectors(
-    df: pd.DataFrame, rate: float, out: pathlib.Path
-) -> Dict[str, np.ndarray]:
+def calculate_vectors(df: pd.DataFrame, rate: float) -> Dict[str, np.ndarray]:
     k = round(len(df) * rate)
     results = {}
     for col in df.columns:
@@ -77,5 +75,5 @@ if __name__ == "__main__":
     if args.headpose:
         df = df.join(load_headpose(args.headpose.resolve(strict=True)), how="outer")
 
-    results = calculate_vectors(df, args.rate, args.out_file.resolve())
+    results = calculate_vectors(df, args.rate)
     np.savez(args.out_file.resolve(), **results)
