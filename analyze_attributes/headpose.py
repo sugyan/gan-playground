@@ -27,7 +27,7 @@ class HeadposeDetector:
         self.predictor = dlib.shape_predictor(predictor_path)
 
     # https://www.learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
-    def __call__(self, img_file: pathlib.Path) -> List[Optional[float]]:
+    def __call__(self, img_file: pathlib.Path) -> List[float]:
         image = cv2.imread(str(img_file))
         size = image.shape
 
@@ -36,7 +36,7 @@ class HeadposeDetector:
         rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         dets = self.detector(rgb, 1)
         if len(dets) != 1:
-            return [None, None, None]
+            return [np.nan, np.nan, np.nan]
 
         d = dets[0]
         shape = self.predictor(rgb, d)
@@ -82,7 +82,7 @@ def predict(target_dir: pathlib.Path) -> Dict[str, np.ndarray]:
     ):
         yaw, pitch, roll = detect(img_file)
         print(f"{i:05d} {img_file}", yaw, pitch, roll)
-        results[str(img_file.resolve())] = [yaw, pitch, roll]
+        results[str(img_file.resolve())] = np.array([yaw, pitch, roll])
 
     return results
 
