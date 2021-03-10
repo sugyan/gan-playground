@@ -38,20 +38,20 @@ def calculate_vectors(df: pd.DataFrame, rate: float) -> Dict[str, np.ndarray]:
     results = {}
     for col in df.columns:
         print(f"Top {k} images of {col}")
+
         print("- MIN")
         mins = []
         for index, row in df.sort_values(col, ascending=True)[:k].iterrows():
             print(f"{index}: {row[col]}")
             mins.append(np.load(f"{index}.npy"))
+
         print("- MAX")
         maxs = []
         for index, row in df.sort_values(col, ascending=False)[:k].iterrows():
             print(f"{index}: {row[col]}")
             maxs.append(np.load(f"{index}.npy"))
-        v = np.mean(maxs, axis=0) - np.mean(mins, axis=0)
-        if not col.startswith("emotion"):
-            v /= 2.0
-        results[col] = v
+
+        results[col] = np.array([np.mean(mins, axis=0), np.mean(maxs, axis=0)])
 
     return results
 
@@ -76,4 +76,8 @@ if __name__ == "__main__":
         df = df.join(load_headpose(args.headpose.resolve(strict=True)), how="outer")
 
     results = calculate_vectors(df, args.rate)
-    np.savez(args.out_file.resolve(), **results)
+    np.savez(
+        args.out_file.resolve(),
+        **results,
+        mean=np.mean([np.load(f"{index}.npy") for index in df.index], axis=0),
+    )
