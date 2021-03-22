@@ -45,11 +45,11 @@ class TF1Generator(StyleGAN):
 
 class TF2Generator(StyleGAN):
     def mapping(self, latents: np.ndarray) -> np.ndarray:
-        latents = tf.constant(latents, dtype=tf.float32)
+        latents = tf.convert_to_tensor(latents, dtype=tf.float32)
         return self.model.signatures["mapping"](latents)["dlatents"].numpy()
 
     def synthesis(self, dlatents: np.ndarray) -> np.ndarray:
-        dlatents = tf.expand_dims(tf.constant(dlatents, dtype=tf.float32), axis=0)
+        dlatents = tf.convert_to_tensor([dlatents], dtype=tf.float32)
         return self.model.signatures["synthesis"](dlatents)["images"].numpy()
 
 
@@ -64,12 +64,12 @@ class ImagesGenerator:
             self.g = TF1Generator(model_path)
         rnd = np.random.RandomState(seed)
         self.z = rnd.randn(num_images, 512)
+        self.dlatents = self.g.mapping(latents=self.z)
 
     def generate(
         self, offset: Optional[np.ndarray] = None
     ) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
-        dlatents = self.g.mapping(latents=self.z)
-        for dlatents_in in dlatents:
+        for dlatents_in in self.dlatents:
             inputs = np.array(dlatents_in)
             if offset is not None:
                 inputs += offset
