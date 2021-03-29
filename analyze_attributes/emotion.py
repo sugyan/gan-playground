@@ -6,8 +6,8 @@ import dlib
 import numpy as np
 import paz.processors as pr
 from paz.abstract import Box2D
-from paz.applications import MiniXceptionFER
 from paz.backend.image import load_image
+from paz.pipelines import MiniXceptionFER
 
 
 class EmotionDetector(pr.Processor):  # type: ignore
