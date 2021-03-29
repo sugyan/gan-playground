@@ -1,5 +1,4 @@
 import argparse
-import glob
 import pathlib
 from typing import Dict, List
 
@@ -42,14 +41,14 @@ class EmotionDetector(pr.Processor):  # type: ignore
 def predict(target_dir: pathlib.Path) -> Dict[str, np.ndarray]:
     results = {}
     detect = EmotionDetector()
-    for i, img_file in enumerate(glob.glob(str(target_dir / "*.png"))):
+    for i, img_file in enumerate(map(str, target_dir.glob("*.png"))):
         image = load_image(img_file)
         predictions = detect(image)
         if len(predictions) != 1:
             continue
 
         print(f"{i:05d} {img_file}", predictions[0][0].tolist())
-        results[str(pathlib.Path(img_file).resolve())] = predictions[0][0]
+        results[img_file] = predictions[0][0]
 
     return results
 
