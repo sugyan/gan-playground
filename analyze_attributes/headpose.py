@@ -80,7 +80,7 @@ def predict(target_dir: pathlib.Path) -> Dict[str, np.ndarray]:
     for i, img_file in enumerate(
         map(pathlib.Path, glob.glob(str(target_dir / "*.png")))
     ):
-        yaw, pitch, roll = detect(img_file)
+        pitch, yaw, roll = detect(img_file)
         print(f"{i:05d} {img_file}", yaw, pitch, roll)
         results[str(img_file.resolve())] = np.array([yaw, pitch, roll])
 
